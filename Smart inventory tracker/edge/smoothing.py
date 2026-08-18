@@ -17,6 +17,21 @@ class SlidingWindowSmoother:
         agg = Counter()
         for d in self.window:
             agg.update(d)
-        # average across window length
         length = len(self.window)
         return {k: int(round(v / length)) for k, v in agg.items()}
+
+class ExpSmoother:
+    def __init__(self, alpha=0.6):
+        self.alpha = alpha
+        self.state = {}
+
+    def update(self, counts):
+        for k, v in counts.items():
+            prev = self.state.get(k, v)
+            self.state[k] = int(round(self.alpha * v + (1 - self.alpha) * prev))
+        for k in list(self.state):
+            if k not in counts:
+                self.state[k] = int(round((1 - self.alpha) * self.state[k]))
+                if self.state[k] <= 0:
+                    del self.state[k]
+        return dict(self.state)
