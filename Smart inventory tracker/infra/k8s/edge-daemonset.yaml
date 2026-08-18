@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: inventory-edge
+  labels:
+    app: inventory-edge
+spec:
+  selector:
+    matchLabels:
+      app: inventory-edge
+  template:
+    metadata:
+      labels:
+        app: inventory-edge
+    spec:
+      serviceAccountName: inventory-edge-sa
+      # schedule edge pods only on nodes labeled for edge (set node label: edge=true)
+      nodeSelector:
+        edge: "true"
+      tolerations:
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
+      containers:
+        - name: edge-agent
+          image: your-registry/inventory-edge:latest
+          imagePullPolicy: IfNotPresent
+          # If you need access to host camera devices, mount /dev
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+          env:
+            - name: BACKEND_URL
+              value: "http://inventory-backend:8000/api/detections"
+            - name: DEVICE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: MODEL_PATH
+              value: "/models/model.tflite"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1500m"
+              memory: "1.5Gi"
+          volumeMounts:
+            - name: models
+              mountPath: /models
+              readOnly: true
+            - name: dev
+              mountPath: /dev
+            - name: host-logs
+              mountPath: /var/log/inventory-edge
+      volumes:
+        - name: models
+          hostPath:
+            # place your exported model on each node at this path
+            path: /opt/inventory/models
+            type: DirectoryOrCreate
+        - name: dev
+          hostPath:
+            path: /dev
+            type: Directory
+        - name: host-logs
+          hostPath:
+            path: /var/log/inventory-edge
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: inventory-edge-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: inventory-edge-role
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "nodes", "nodes/proxy"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: inventory-edge-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: inventory-edge-role
+subjects:
+  - kind: ServiceAccount
+    name: inventory-edge-sa
+    namespace: default
