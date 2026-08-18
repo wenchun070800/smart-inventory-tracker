@@ -1,14 +1,10 @@
-# edge/infer.py
 import cv2
 import time
 import json
 import requests
 import argparse
 import os
-from smoothing import SlidingWindowSmoother
-
-# This edge script assumes a TFLite model exported with outputs: boxes, scores, classes
-# For a quick start you can replace TFLite inference with ultralytics YOLO model usage.
+from smoothing import SlidingWindowSmoother, ExpSmoother
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--backend', default='http://localhost:8000/api/detections')
@@ -20,10 +16,11 @@ parser.add_argument('--model', default=None, help='Path to tflite model (optiona
 args = parser.parse_args()
 
 smoother = SlidingWindowSmoother(window_size=args.window)
+exp_smoother = ExpSmoother(alpha=0.6)
 
 if args.use_ultralytics:
     from ultralytics import YOLO
-    model = YOLO('yolov8n.pt')  # dev convenience; downloads automatically
+    model = YOLO('yolov8n.pt')
     def detect_frame(frame):
         results = model(frame, imgsz=640)[0]
         counts = {}
@@ -33,7 +30,6 @@ if args.use_ultralytics:
             counts[name] = counts.get(name, 0) + 1
         return counts
 else:
-    # Minimal TFLite inference placeholder (adapt to your exported model)
     try:
         import tflite_runtime.interpreter as tflite
     except Exception:
@@ -48,10 +44,8 @@ else:
         interpreter = None
 
     def detect_frame(frame):
-        # Fallback: return empty dict if no model
         if interpreter is None:
             return {}
-        # Preprocess
         h, w = frame.shape[:2]
         in_h = input_details[0]['shape'][1]
         in_w = input_details[0]['shape'][2]
@@ -61,8 +55,6 @@ else:
         img = img.reshape(input_details[0]['shape'])
         interpreter.set_tensor(input_details[0]['index'], img)
         interpreter.invoke()
-        # NOTE: output parsing depends on model export format
-        # This is a placeholder and must be adapted to your model's outputs.
         boxes = interpreter.get_tensor(output_details[0]['index'])
         scores = interpreter.get_tensor(output_details[1]['index'])
         classes = interpreter.get_tensor(output_details[2]['index'])
@@ -88,12 +80,12 @@ def main():
             counts = detect_frame(frame)
             smoother.add(counts)
             smoothed = smoother.smoothed()
+            smoothed = exp_smoother.update(smoothed)
             payload = {'timestamp': time.time(), 'counts': smoothed, 'device_id': os.getenv('EDGE_DEVICE_ID', 'edge-01')}
             try:
                 requests.post(args.backend, json=payload, timeout=2)
             except Exception as e:
                 print("Failed to post to backend:", e)
-            # Optional: show annotated frame
             cv2.imshow("Edge - press q to quit", frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
