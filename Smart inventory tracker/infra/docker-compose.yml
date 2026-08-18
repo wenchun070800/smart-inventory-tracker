@@ -53,7 +53,6 @@ services:
       - backend
     environment:
       EDGE_DEVICE_ID: edge-local
-    # For local dev you may want to run edge outside docker to access webcam
 
 volumes:
   db_data:
