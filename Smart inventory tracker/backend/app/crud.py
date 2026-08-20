@@ -1,8 +1,6 @@
-# backend/app/crud.py
 from .db import SessionLocal
 from .models import InventoryItem
 import datetime
-from sqlalchemy.exc import IntegrityError
 
 def upsert_counts(device_id: str, counts: dict, ts: float):
     db = SessionLocal()
@@ -16,7 +14,13 @@ def upsert_counts(device_id: str, counts: dict, ts: float):
                 hist.append({'ts': ts, 'count': cnt})
                 item.history = hist[-200:]
             else:
-                item = InventoryItem(sku=sku, name=sku, count=cnt, last_seen=datetime.datetime.utcfromtimestamp(ts), history=[{'ts': ts, 'count': cnt}])
+                item = InventoryItem(
+                    sku=sku,
+                    name=sku,
+                    count=cnt,
+                    last_seen=datetime.datetime.utcfromtimestamp(ts),
+                    history=[{'ts': ts, 'count': cnt}],
+                )
                 db.add(item)
         db.commit()
     except Exception:

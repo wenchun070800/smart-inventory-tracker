@@ -1,5 +1,4 @@
-# backend/app/models.py
-from sqlalchemy import Column, Integer, String, Float, DateTime, JSON
+from sqlalchemy import Column, Integer, String, DateTime, JSON
 from .db import Base
 import datetime
 

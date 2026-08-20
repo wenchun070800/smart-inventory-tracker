@@ -1,25 +1,17 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from .db import Base, engine
 from .models import InventoryItem
-from .schemas import Detection
 from .tasks import process_detection
 from .crud import list_items
-import os
+from .schemas import Detection
+from .websocket import connect, disconnect
+from .api import detections, items
 
 app = FastAPI(title="Inventory Tracker API")
 Base.metadata.create_all(bind=engine)
 
-@app.post("/api/detections")
-async def receive_detection(d: Detection):
-    process_detection.delay(d.dict())
-    return {"status": "queued"}
-
-@app.get("/api/items")
-def api_list_items():
-    rows = list_items()
-    return {'items': [{'sku': r.sku, 'name': r.name, 'count': r.count, 'last_seen': r.last_seen.isoformat() if r.last_seen else None, 'reorder_threshold': r.reorder_threshold} for r in rows]}
-
-from .websocket import connect, disconnect
+app.include_router(detections.router)
+app.include_router(items.router)
 
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):

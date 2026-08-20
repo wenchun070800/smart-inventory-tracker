@@ -6,9 +6,6 @@ class SlidingWindowSmoother:
         self.window = deque(maxlen=window_size)
 
     def add(self, counts_dict):
-        """
-        counts_dict: {name: count}
-        """
         self.window.append(counts_dict)
 
     def smoothed(self):

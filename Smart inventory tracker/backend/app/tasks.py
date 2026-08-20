@@ -1,4 +1,3 @@
-# backend/app/tasks.py
 from celery import Celery
 import os
 from .crud import upsert_counts
@@ -13,7 +12,6 @@ def process_detection(payload):
     counts = payload.get('counts', {})
     device = payload.get('device_id', 'edge-unknown')
     upsert_counts(device, counts, ts)
-    # broadcast to websocket clients (non-blocking)
     try:
         broadcast_counts()
     except Exception:

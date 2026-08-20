@@ -1,0 +1,16 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: backend-ingressroute
+  namespace: default
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`api.example.com`)
+      kind: Rule
+      services:
+        - name: inventory-backend
+          port: 8000
+  tls:
+    certResolver: letsencrypt
