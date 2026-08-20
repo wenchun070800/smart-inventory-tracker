@@ -1,11 +1,6 @@
 # Smart Inventory Tracker
 
-This repository contains a production-style AI Smart Inventory Tracker:
-- ML training (YOLOv8)
-- Edge inference (TFLite/Ultralytics)
-- Backend (FastAPI, PostgreSQL, Celery, Redis)
-- Frontend (React)
-- Docker Compose for local dev
+This repository contains a production-style AI Smart Inventory Tracker that provides a full end‑to‑end system for real‑time inventory monitoring using computer vision at the edge and a modern cloud‑ready backend. It integrates YOLOv8 for model training, TFLite/Ultralytics for edge inference, a FastAPI backend with PostgreSQL, Celery, and Redis for asynchronous processing and persistence, and a React frontend for live visualization through WebSockets. The system is containerized with Docker Compose for local development and includes infrastructure components suitable for scaling to production environments.
 
 ## Quickstart (local dev)
 1. Copy `.env.example` to `.env` and adjust if needed.
