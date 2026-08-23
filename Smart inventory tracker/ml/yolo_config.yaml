@@ -1,4 +1,0 @@
-train: ../ml/dataset/images/train
-val: ../ml/dataset/images/val
-nc: 12
-names: ['sku_A','sku_B','sku_C','sku_D','sku_E','sku_F','sku_G','sku_H','sku_I','sku_J','sku_K','sku_L']
